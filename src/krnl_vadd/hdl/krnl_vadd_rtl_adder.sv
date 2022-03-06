@@ -43,7 +43,7 @@ timeprecision 1ps;
 
 logic [C_DATA_WIDTH-1:0] m_tdata_inner;
 logic m_tvalid_inner;
-logic i_valid_inner;
+logic [C_NUM_CHANNELS-1:0] i_valid_inner;
 
 adder_var_seq #(
   .DATA_WIDTH (C_DATA_WIDTH)
