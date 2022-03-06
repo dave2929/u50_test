@@ -51,7 +51,7 @@ help::
 MK_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 COMMON_REPO ?= $(shell bash -c 'export MK_PATH=$(MK_PATH); echo $${MK_PATH%rtl_kernels/rtl_vadd/*}')
 PWD = $(shell readlink -f .)
-XF_PROJ_ROOT = $(shell readlink -f $(COMMON_REPO))
+XF_PROJ_ROOT = /nethome/yhe374/Vitis_Accel_Examples
 
 TARGET := hw
 HOST_ARCH := x86
