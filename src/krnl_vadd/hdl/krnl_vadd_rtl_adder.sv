@@ -50,12 +50,13 @@ adder_var_seq #(
   .clk      (aclk   ),
   .rst_n    (areset ),
   .i_data   (s_tdata),
-  .i_valid  (&s_tvalid & s_tready),
+  .i_valid  (i_valid_inner),
   .o_data   (m_tdata_inner),
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
 )
 
+assign i_valid_inner = s_tvalid & s_tready;
 assign m_tdata = m_tdata_inner;
 assign m_tvalid = m_tvalid_inner;
 
