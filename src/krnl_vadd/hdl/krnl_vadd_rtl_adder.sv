@@ -55,13 +55,18 @@ adder_var_seq #(
   .o_data   (m_tdata_inner),
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
-)
+);
 
-assign i_valid_inner = s_tvalid & s_tready;
+
+//assign i_valid_inner = s_tvalid & s_tready;
+assign i_valid_inner = s_tvalid;
 assign m_tdata = m_tdata_inner;
 assign m_tvalid = m_tvalid_inner;
 
-assign s_tready = m_tready ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
+//assign s_tready = m_tready ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
+assign s_tready = m_tready & m_tvalid_inner ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
+
+
 
 endmodule : krnl_vadd_rtl_adder
 
