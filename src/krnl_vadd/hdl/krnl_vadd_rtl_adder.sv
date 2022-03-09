@@ -41,9 +41,42 @@ module krnl_vadd_rtl_adder #(
 timeunit 1ps; 
 timeprecision 1ps; 
 
+localparam NUM_DATA_IN_BUF = 32;
+localparam CNT_VALID_WIDTH =  1 + $clog2(NUM_DATA_IN_BUF);
+localparam CUT_OFF_THRESHOLD = 1;
+
 logic [C_DATA_WIDTH-1:0] m_tdata_inner;
 logic m_tvalid_inner;
-logic [C_NUM_CHANNELS-1:0] i_valid_inner;
+logic cnt; // number of data in buffer
+
+always @(posedge aclk) begin
+  if (areset)
+    cnt <= 'b0;
+  else if (s_tready & m_tvalid_inner & m_tready)
+    cnt <= cnt;
+  else if (s_tready & (~(m_tvalid_inner & m_tready)))
+    cnt <= cnt + {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
+  else if (~s_tready & m_tvalid_inner & m_tready)
+    cnt <= cnt - {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
+  else
+    cnt <= cnt;
+end
+
+always @(*) begin
+  if (areset)
+    s_tready <= {C_NUM_CHANNELS{1'b0}};
+  else if ((cnt >= CUT_OFF_THRESHOLD) & m_tready & m_tvalid_inner & (&s_tvalid))
+    s_tready <= {C_NUM_CHANNELS{1'b1}};
+  else if ((cnt >= CUT_OFF_THRESHOLD) & (~(m_tready & m_tvalid_inner)) & (&s_tvalid))
+    s_tready <= {C_NUM_CHANNELS{1'b0}}; 
+  else if ((cnt < CUT_OFF_THRESHOLD) & (&s_tvalid))
+    s_tready <= {C_NUM_CHANNELS{1'b1}};
+  else
+    s_tready <= {C_NUM_CHANNELS{1'b0}}; 
+end
+
+//systolic_array_top_axi_seq reference
+// tlast->delete, strb -> 1
 
 adder_var_seq #(
   .DATA_WIDTH (C_DATA_WIDTH)
@@ -51,20 +84,15 @@ adder_var_seq #(
   .clk      (aclk   ),
   .rst_n    (areset ),
   .i_data   (s_tdata),
-  .i_valid  (i_valid_inner),
+  .i_valid  (s_tvalid),
   .o_data   (m_tdata_inner),
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
 );
 
 
-//assign i_valid_inner = s_tvalid & s_tready;
-assign i_valid_inner = s_tvalid;
 assign m_tdata = m_tdata_inner;
 assign m_tvalid = m_tvalid_inner;
-
-//assign s_tready = m_tready ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
-assign s_tready = m_tready & m_tvalid_inner ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
 
 
 
