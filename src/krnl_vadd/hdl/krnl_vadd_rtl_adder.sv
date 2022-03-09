@@ -48,6 +48,7 @@ localparam CUT_OFF_THRESHOLD = 1;
 logic [C_DATA_WIDTH-1:0] m_tdata_inner;
 logic m_tvalid_inner;
 logic cnt; // number of data in buffer
+logic s_tready_inner;
 
 always @(posedge aclk) begin
   if (areset)
@@ -64,15 +65,15 @@ end
 
 always @(*) begin
   if (areset)
-    s_tready <= {C_NUM_CHANNELS{1'b0}};
+    s_tready_inner <= {C_NUM_CHANNELS{1'b0}};
   else if ((cnt >= CUT_OFF_THRESHOLD) & m_tready & m_tvalid_inner & (&s_tvalid))
-    s_tready <= {C_NUM_CHANNELS{1'b1}};
+    s_tready_inner <= {C_NUM_CHANNELS{1'b1}};
   else if ((cnt >= CUT_OFF_THRESHOLD) & (~(m_tready & m_tvalid_inner)) & (&s_tvalid))
-    s_tready <= {C_NUM_CHANNELS{1'b0}}; 
+    s_tready_inner <= {C_NUM_CHANNELS{1'b0}}; 
   else if ((cnt < CUT_OFF_THRESHOLD) & (&s_tvalid))
-    s_tready <= {C_NUM_CHANNELS{1'b1}};
+    s_tready_inner <= {C_NUM_CHANNELS{1'b1}};
   else
-    s_tready <= {C_NUM_CHANNELS{1'b0}}; 
+    s_tready_inner <= {C_NUM_CHANNELS{1'b0}}; 
 end
 
 //systolic_array_top_axi_seq reference
@@ -93,7 +94,7 @@ adder_var_seq #(
 
 assign m_tdata = m_tdata_inner;
 assign m_tvalid = m_tvalid_inner;
-
+assign s_tready = s_tready_inner;
 
 
 endmodule : krnl_vadd_rtl_adder
