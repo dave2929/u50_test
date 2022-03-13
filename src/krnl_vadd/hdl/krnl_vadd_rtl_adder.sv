@@ -33,7 +33,7 @@ module krnl_vadd_rtl_adder #(
   output wire [C_NUM_CHANNELS-1:0]                   s_tready,
 
   output wire                                        m_tvalid,
-  output wire [C_DATA_WIDTH-1:0]                     m_tdata,
+  output wire [C_DATA_WIDTH:0]                     m_tdata,
   input  wire                                        m_tready
 
 );
@@ -45,35 +45,33 @@ localparam NUM_DATA_IN_BUF = 32;
 localparam CNT_VALID_WIDTH =  1 + $clog2(NUM_DATA_IN_BUF);
 localparam CUT_OFF_THRESHOLD = 1;
 
-logic [C_DATA_WIDTH-1:0] m_tdata_inner;
+logic [C_DATA_WIDTH:0] m_tdata_inner;
 logic m_tvalid_inner;
 logic cnt; // number of data in buffer
-logic s_tready_inner;
+logic [C_NUM_CHANNELS-1:0] s_tready_inner;
 
-always @(posedge aclk) begin
-  if (areset)
+always @(posedge aclk or posedge areset) begin
+  if (!areset)
     cnt <= 'b0;
-  else if (s_tready & m_tvalid_inner & m_tready)
+  else if ((&s_tready) & m_tvalid_inner & m_tready)
     cnt <= cnt;
-  else if (s_tready & (~(m_tvalid_inner & m_tready)))
+  else if ((&s_tready) & (~(m_tvalid_inner & m_tready)))
     cnt <= cnt + {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
-  else if (~s_tready & m_tvalid_inner & m_tready)
+  else if (~(&s_tready) & m_tvalid_inner & m_tready)
     cnt <= cnt - {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
   else
     cnt <= cnt;
 end
 
 always @(*) begin
-  if (areset)
-    s_tready_inner <= {C_NUM_CHANNELS{1'b0}};
-  else if ((cnt >= CUT_OFF_THRESHOLD) & m_tready & m_tvalid_inner & (&s_tvalid))
-    s_tready_inner <= {C_NUM_CHANNELS{1'b1}};
+  if ((cnt >= CUT_OFF_THRESHOLD) & m_tready & m_tvalid_inner & (&s_tvalid))
+    s_tready_inner = {C_NUM_CHANNELS{1'b1}};
   else if ((cnt >= CUT_OFF_THRESHOLD) & (~(m_tready & m_tvalid_inner)) & (&s_tvalid))
-    s_tready_inner <= {C_NUM_CHANNELS{1'b0}}; 
+    s_tready_inner = {C_NUM_CHANNELS{1'b0}}; 
   else if ((cnt < CUT_OFF_THRESHOLD) & (&s_tvalid))
-    s_tready_inner <= {C_NUM_CHANNELS{1'b1}};
+    s_tready_inner = {C_NUM_CHANNELS{1'b1}};
   else
-    s_tready_inner <= {C_NUM_CHANNELS{1'b0}}; 
+    s_tready_inner = {C_NUM_CHANNELS{1'b0}}; 
 end
 
 //systolic_array_top_axi_seq reference
