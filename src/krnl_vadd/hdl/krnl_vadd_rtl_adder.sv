@@ -41,7 +41,7 @@ module krnl_vadd_rtl_adder #(
 timeunit 1ps; 
 timeprecision 1ps; 
 
-localparam NUM_DATA_IN_BUF = 32;
+localparam NUM_DATA_IN_BUF = 1; //
 localparam CNT_VALID_WIDTH =  1 + $clog2(NUM_DATA_IN_BUF);
 localparam CUT_OFF_THRESHOLD = 1;
 
@@ -50,9 +50,9 @@ logic m_tvalid_inner;
 logic cnt; // number of data in buffer
 logic [C_NUM_CHANNELS-1:0] s_tready_inner;
 
-always @(posedge aclk or negedge areset) begin
+always @(posedge aclk) begin
   if (!areset)
-    cnt <= 'b0;
+    cnt <= 1'b1;
   else if ((&s_tready) & m_tvalid_inner & m_tready)
     cnt <= cnt;
   else if ((&s_tready) & (~(m_tvalid_inner & m_tready)))
