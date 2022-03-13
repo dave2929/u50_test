@@ -50,8 +50,8 @@ logic m_tvalid_inner;
 logic cnt; // number of data in buffer
 logic [C_NUM_CHANNELS-1:0] s_tready_inner;
 
-always @(posedge aclk or posedge areset) begin
-  if (!areset)
+always @(posedge aclk or posedge areset or negedge areset) begin
+  if (areset == 1'b1)
     cnt <= 'b0;
   else if ((&s_tready) & m_tvalid_inner & m_tready)
     cnt <= cnt;
