@@ -91,17 +91,19 @@ adder_var_seq #(
   .i_en     (1'b1)
 );
 
-always @(*) begin
+always @(posedge aclk) begin
   if (m_tvalid_inner) begin
     m_tdata_buffer = m_tdata_inner;
     m_tvalid_buffer = m_tvalid_inner;
   end
+  else if (m_tready & m_tvalid_buffer)
+    m_tvalid_buffer = 1'b0;
   else begin
     m_tdata_buffer = m_tdata_buffer;
     m_tvalid_buffer = m_tvalid_buffer;
   end
 end
-
+// 
 
 assign  m_tdata = m_tdata_buffer;
 assign m_tvalid = m_tvalid_buffer;
