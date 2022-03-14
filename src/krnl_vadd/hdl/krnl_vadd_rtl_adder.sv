@@ -33,7 +33,7 @@ module krnl_vadd_rtl_adder #(
   output wire [C_NUM_CHANNELS-1:0]                   s_tready,
 
   output wire                                        m_tvalid,
-  output wire [C_DATA_WIDTH:0]                     m_tdata,
+  output wire [C_DATA_WIDTH-1:0]                     m_tdata,
   input  wire                                        m_tready
 
 );
@@ -105,7 +105,7 @@ always @(posedge aclk) begin
 end
 // 
 
-assign  m_tdata = m_tdata_buffer;
+assign  m_tdata = m_tdata_buffer[C_DATA_WIDTH-1:0];
 assign m_tvalid = m_tvalid_buffer;
 assign s_tready = s_tready_inner;
 
