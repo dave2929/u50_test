@@ -46,36 +46,38 @@ localparam CNT_VALID_WIDTH =  1 + $clog2(NUM_DATA_IN_BUF);
 localparam CUT_OFF_THRESHOLD = 1;
 
 logic [C_DATA_WIDTH:0] m_tdata_inner;
+logic [C_DATA_WIDTH:0] m_tdata_buffer;
 logic m_tvalid_inner;
+logic m_tvalid_buffer;
 logic cnt; // number of data in buffer
 logic [C_NUM_CHANNELS-1:0] s_tready_inner;
 
+
 always @(posedge aclk) begin
   if (!areset)
-    cnt <= 1'b1;
-  else if ((&s_tready) & m_tvalid_inner & m_tready)
+    cnt <= 1'b0;
+  else if ((&s_tready) & m_tvalid_buffer & m_tready)
     cnt <= cnt;
-  else if ((&s_tready) & (~(m_tvalid_inner & m_tready)))
+  else if ((&s_tready) & (~(m_tvalid_buffer & m_tready)))
     cnt <= cnt + {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
-  else if (~(&s_tready) & m_tvalid_inner & m_tready)
+  else if (~(&s_tready) & m_tvalid_buffer & m_tready)
     cnt <= cnt - {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
   else
     cnt <= cnt;
 end
 
 always @(*) begin
-  if ((cnt >= CUT_OFF_THRESHOLD) & m_tready & m_tvalid_inner & (&s_tvalid))
-    s_tready_inner = {C_NUM_CHANNELS{1'b1}};
-  else if ((cnt >= CUT_OFF_THRESHOLD) & (~(m_tready & m_tvalid_inner)) & (&s_tvalid))
-    s_tready_inner = {C_NUM_CHANNELS{1'b0}}; 
+  if (!areset)
+    s_tready_inner <= {C_NUM_CHANNELS{1'b0}};
+  if ((cnt >= CUT_OFF_THRESHOLD) & m_tready & m_tvalid_buffer & (&s_tvalid))
+    s_tready_inner <= {C_NUM_CHANNELS{1'b1}};
+  else if ((cnt >= CUT_OFF_THRESHOLD) & (~(m_tready & m_tvalid_buffer)) & (&s_tvalid))
+    s_tready_inner <= {C_NUM_CHANNELS{1'b0}}; 
   else if ((cnt < CUT_OFF_THRESHOLD) & (&s_tvalid))
-    s_tready_inner = {C_NUM_CHANNELS{1'b1}};
+    s_tready_inner <= {C_NUM_CHANNELS{1'b1}};
   else
-    s_tready_inner = {C_NUM_CHANNELS{1'b0}}; 
+    s_tready_inner <= {C_NUM_CHANNELS{1'b0}}; 
 end
-
-//systolic_array_top_axi_seq reference
-// tlast->delete, strb -> 1
 
 adder_var_seq #(
   .DATA_WIDTH (C_DATA_WIDTH)
@@ -83,15 +85,26 @@ adder_var_seq #(
   .clk      (aclk   ),
   .rst_n    (areset ),
   .i_data   (s_tdata),
-  .i_valid  (s_tvalid),
+  .i_valid  (s_tvalid & s_tready),
   .o_data   (m_tdata_inner),
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
 );
 
+always @(*) begin
+  if (m_tvalid_inner) begin
+    m_tdata_buffer = m_tdata_inner;
+    m_tvalid_buffer = m_tvalid_inner;
+  end
+  else begin
+    m_tdata_buffer = m_tdata_buffer;
+    m_tvalid_buffer = m_tvalid_buffer;
+  end
+end
 
-assign m_tdata = m_tdata_inner;
-assign m_tvalid = m_tvalid_inner;
+
+assign  m_tdata = m_tdata_buffer;
+assign m_tvalid = m_tvalid_buffer;
 assign s_tready = s_tready_inner;
 
 
