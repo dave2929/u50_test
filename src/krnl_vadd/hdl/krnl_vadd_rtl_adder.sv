@@ -41,6 +41,7 @@ module krnl_vadd_rtl_adder #(
 timeunit 1ps; 
 timeprecision 1ps; 
 
+/*
 localparam NUM_DATA_IN_BUF = 1; //
 localparam CNT_VALID_WIDTH =  1 + $clog2(NUM_DATA_IN_BUF);
 localparam CUT_OFF_THRESHOLD = 1;
@@ -103,12 +104,32 @@ always @(posedge aclk) begin
     m_tvalid_buffer = m_tvalid_buffer;
   end
 end
-// 
 
 assign  m_tdata = m_tdata_buffer[C_DATA_WIDTH-1:0];
 assign m_tvalid = m_tvalid_buffer;
 assign s_tready = s_tready_inner;
+*/
+/////////////////////////////////////////////////////////////////////////////
+// Variables
+/////////////////////////////////////////////////////////////////////////////
+logic [C_DATA_WIDTH-1:0] acc;
 
+/////////////////////////////////////////////////////////////////////////////
+// Logic
+/////////////////////////////////////////////////////////////////////////////
+
+always_comb begin 
+  acc = s_tdata[0]; 
+  for (int i = 1; i < C_NUM_CHANNELS; i++) begin 
+    acc = acc + s_tdata[i]; 
+  end
+end
+
+assign m_tvalid = &s_tvalid;
+assign m_tdata = acc;
+
+// Only assert s_tready when transfer has been accepted.  tready asserted on all channels simultaneously
+assign s_tready = m_tready & m_tvalid ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
 
 endmodule : krnl_vadd_rtl_adder
 
