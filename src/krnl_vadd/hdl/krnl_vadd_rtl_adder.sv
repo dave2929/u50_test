@@ -41,7 +41,7 @@ module krnl_vadd_rtl_adder #(
 timeunit 1ps; 
 timeprecision 1ps; 
 
-/*
+
 localparam NUM_DATA_IN_BUF = 1; //
 localparam CNT_VALID_WIDTH =  1 + $clog2(NUM_DATA_IN_BUF);
 localparam CUT_OFF_THRESHOLD = 1;
@@ -57,27 +57,29 @@ logic [C_NUM_CHANNELS-1:0] s_tready_inner;
 always @(posedge aclk) begin
   if (!areset)
     cnt <= 1'b0;
-  else if ((&s_tready) & m_tvalid_buffer & m_tready)
+  else if ((&s_tready_inner) & (&s_tvalid) & m_tready)
     cnt <= cnt;
-  else if ((&s_tready) & (~(m_tvalid_buffer & m_tready)))
+  else if ((&s_tready_inner) & ((&s_tvalid) & ~m_tready))
     cnt <= cnt + {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
-  else if (~(&s_tready) & m_tvalid_buffer & m_tready)
-    cnt <= cnt - {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
+  else if ((&s_tready_inner) & (~(&s_tvalid) & m_tready))
+    cnt <= cnt;
+  else if (~(&s_tready_inner) & m_tready)
+    cnt <= cnt == 1'b0 ? 1'b0 : cnt - {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
   else
     cnt <= cnt;
 end
 
 always @(*) begin
   if (!areset)
-    s_tready_inner <= {C_NUM_CHANNELS{1'b0}};
+    s_tready_inner = {C_NUM_CHANNELS{1'b0}};
   if ((cnt >= CUT_OFF_THRESHOLD) & m_tready & m_tvalid_buffer & (&s_tvalid))
-    s_tready_inner <= {C_NUM_CHANNELS{1'b1}};
+    s_tready_inner = {C_NUM_CHANNELS{1'b1}};
   else if ((cnt >= CUT_OFF_THRESHOLD) & (~(m_tready & m_tvalid_buffer)) & (&s_tvalid))
-    s_tready_inner <= {C_NUM_CHANNELS{1'b0}}; 
+    s_tready_inner = {C_NUM_CHANNELS{1'b0}}; 
   else if ((cnt < CUT_OFF_THRESHOLD) & (&s_tvalid))
-    s_tready_inner <= {C_NUM_CHANNELS{1'b1}};
+    s_tready_inner = {C_NUM_CHANNELS{1'b1}};
   else
-    s_tready_inner <= {C_NUM_CHANNELS{1'b0}}; 
+    s_tready_inner = {C_NUM_CHANNELS{1'b0}}; 
 end
 
 adder_var_seq #(
@@ -86,19 +88,25 @@ adder_var_seq #(
   .clk      (aclk   ),
   .rst_n    (areset ),
   .i_data   (s_tdata),
-  .i_valid  (s_tvalid & s_tready),
+  .i_valid  (s_tvalid & s_tready_inner),
   .o_data   (m_tdata_inner),
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
 );
 
-always @(posedge aclk) begin
-  if (m_tvalid_inner) begin
+always @(*) begin
+  if (!areset) begin
+    m_tdata_buffer = {C_DATA_WIDTH{1'b0}};
+    m_tvalid_buffer = 1'b0;
+  end
+  else if (m_tvalid_inner) begin
     m_tdata_buffer = m_tdata_inner;
     m_tvalid_buffer = m_tvalid_inner;
   end
-  else if (m_tready & m_tvalid_buffer)
+  else if (m_tready & m_tvalid_buffer & cnt == 1'b0) begin
+    m_tdata_buffer = {C_DATA_WIDTH{1'b0}};
     m_tvalid_buffer = 1'b0;
+  end
   else begin
     m_tdata_buffer = m_tdata_buffer;
     m_tvalid_buffer = m_tvalid_buffer;
@@ -108,7 +116,8 @@ end
 assign  m_tdata = m_tdata_buffer[C_DATA_WIDTH-1:0];
 assign m_tvalid = m_tvalid_buffer;
 assign s_tready = s_tready_inner;
-*/
+
+/* 
 /////////////////////////////////////////////////////////////////////////////
 // Variables
 /////////////////////////////////////////////////////////////////////////////
@@ -131,6 +140,7 @@ assign m_tdata = acc;
 // Only assert s_tready when transfer has been accepted.  tready asserted on all channels simultaneously
 assign s_tready = m_tready & m_tvalid ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
 
+ */
 endmodule : krnl_vadd_rtl_adder
 
 `default_nettype wire
