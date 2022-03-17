@@ -133,9 +133,13 @@ adder_var_seq #(
   .i_en     (1'b1)
 );
 
+initial begin
+  m_tdata_inner = {C_DATA_WIDTH{1'b0}}
+end
 
 assign m_tvalid = &s_tvalid;
-assign m_tdata = {(C_DATA_WIDTH-1){1'b0}};
+//assign m_tdata = {(C_DATA_WIDTH-1){1'b0}};
+assign m_tdata = m_tdata_inner;
 
 // Only assert s_tready when transfer has been accepted.  tready asserted on all channels simultaneously
 assign s_tready = m_tready & m_tvalid ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
