@@ -64,7 +64,7 @@ always @(posedge aclk) begin
   else if ((&s_tready_inner) & (~(&s_tvalid) & m_tready))
     cnt <= cnt;
   else if (~(&s_tready_inner) & m_tready)
-    cnt <= cnt == 1'b0 ? 1'b0 : cnt - {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
+    cnt <= (cnt == 1'b0) ? 1'b0 : cnt - {{(CNT_VALID_WIDTH-1){1'b0}},{1'b1}};  
   else
     cnt <= cnt;
 end
@@ -103,7 +103,7 @@ always @(*) begin
     m_tdata_buffer = m_tdata_inner;
     m_tvalid_buffer = m_tvalid_inner;
   end
-  else if (m_tready & m_tvalid_buffer & cnt == 1'b0) begin
+  else if (m_tready & cnt == 1'b0) begin
     m_tdata_buffer = {C_DATA_WIDTH{1'b0}};
     m_tvalid_buffer = 1'b0;
   end
