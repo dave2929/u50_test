@@ -26,7 +26,7 @@ module krnl_vadd_rtl_adder #(
 )
 (
   input wire                                         aclk,
-  input wire                                         areset,
+  input wire                                         areset,    //active-high reset
 
   input wire  [C_NUM_CHANNELS-1:0]                   s_tvalid,
   input wire  [C_NUM_CHANNELS-1:0][C_DATA_WIDTH-1:0] s_tdata,
@@ -53,8 +53,12 @@ logic m_tvalid_buffer;
 logic cnt; // number of data in buffer
 logic [C_NUM_CHANNELS-1:0] s_tready_inner;
 
+initial begin
+  m_tdata_inner = {{(C_DATA_WIDTH-1){1'b0}},{1'b1}};
+end
+
 always @(posedge aclk) begin
-  if (!areset)
+  if (areset)
     cnt <= 1'b0;
   else if ((&s_tready_inner) & (&s_tvalid) & m_tready)
     cnt <= cnt;
@@ -69,7 +73,7 @@ always @(posedge aclk) begin
 end
 
 always @(*) begin
-  if (!areset)
+  if (areset)
     s_tready_inner = {C_NUM_CHANNELS{1'b0}};
   if ((cnt >= CUT_OFF_THRESHOLD) & m_tready & m_tvalid_buffer & (&s_tvalid))
     s_tready_inner = {C_NUM_CHANNELS{1'b1}};
@@ -94,7 +98,7 @@ adder_var_seq #(
 );
 
 always @(*) begin
-  if (!areset) begin
+  if (areset) begin
     m_tdata_buffer = {C_DATA_WIDTH{1'b0}};
     m_tvalid_buffer = 1'b0;
   end
