@@ -41,7 +41,7 @@ module krnl_vadd_rtl_adder #(
 timeunit 1ps; 
 timeprecision 1ps; 
 
-/*
+
 localparam NUM_DATA_IN_BUF = 1; //
 localparam CNT_VALID_WIDTH =  1 + $clog2(NUM_DATA_IN_BUF);
 localparam CUT_OFF_THRESHOLD = 1;
@@ -85,7 +85,7 @@ adder_var_seq #(
   .DATA_WIDTH (C_DATA_WIDTH)
 ) adder (
   .clk      (aclk   ),
-  .rst_n    (areset ),
+  .rst_n    (~areset ),
   .i_data   (s_tdata),
   .i_valid  (s_tvalid & s_tready_inner),
   .o_data   (m_tdata_inner),
@@ -115,9 +115,9 @@ end
 assign  m_tdata = m_tdata_buffer;
 assign m_tvalid = m_tvalid_buffer;
 assign s_tready = s_tready_inner;
-*/
 
 
+/*
 logic [C_DATA_WIDTH:0] m_tdata_inner;
 logic m_tvalid_inner;
 
@@ -142,7 +142,7 @@ assign m_tdata = m_tdata_inner[C_DATA_WIDTH-1:0];
 
 // Only assert s_tready when transfer has been accepted.  tready asserted on all channels simultaneously
 assign s_tready = m_tready & m_tvalid ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
-
+*/
 
 endmodule : krnl_vadd_rtl_adder
 
