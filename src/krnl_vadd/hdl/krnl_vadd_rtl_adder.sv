@@ -98,7 +98,7 @@ adder_var_seq #(
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
 );
-
+/*
 always @(*) begin
   if (areset) begin
     m_tdata_buffer = {C_DATA_WIDTH{1'b0}};
@@ -122,6 +122,11 @@ assign  m_tdata = m_tdata_buffer;
 assign m_tvalid = m_tvalid_buffer;
 assign s_tready = s_tready_inner;
 
+*/
+
+assign  m_tdata = m_tdata_inner;
+assign m_tvalid = &s_tvalid;
+assign s_tready = s_tready_inner;
 
 /*
 logic [C_DATA_WIDTH:0] m_tdata_inner;
