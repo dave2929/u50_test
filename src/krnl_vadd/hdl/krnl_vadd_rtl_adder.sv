@@ -127,14 +127,14 @@ adder_var_seq #(
   .clk      (aclk   ),
   .rst_n    (areset ),
   .i_data   (s_tdata),
-  .i_valid  (s_tvalid & s_tready),
+  .i_valid  (s_tvalid),
   .o_data   (m_tdata_inner),
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
 );
 
 initial begin
-  m_tdata_inner = {C_DATA_WIDTH{1'b0}};
+  m_tdata_inner = {C_DATA_WIDTH{1'b1}};
 end
 
 assign m_tvalid = &s_tvalid;
