@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
             std::cout << "i = " << i << " Software result = " << source_sw_results[i]
                       << " Device result = " << source_hw_results[i] << std::endl;
             match = 1;
-            break;
+            //break;
         }
     }
 

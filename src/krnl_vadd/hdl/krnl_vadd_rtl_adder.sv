@@ -53,7 +53,6 @@ logic m_tvalid_buffer;
 logic cnt; // number of data in buffer
 logic [C_NUM_CHANNELS-1:0] s_tready_inner;
 
-
 always @(posedge aclk) begin
   if (!areset)
     cnt <= 1'b0;
@@ -113,10 +112,11 @@ always @(*) begin
   end
 end
 
-assign  m_tdata = m_tdata_buffer[C_DATA_WIDTH-1:0];
+assign  m_tdata = m_tdata_buffer;
 assign m_tvalid = m_tvalid_buffer;
 assign s_tready = s_tready_inner;
 */
+
 
 logic [C_DATA_WIDTH:0] m_tdata_inner;
 logic m_tvalid_inner;
@@ -134,11 +134,10 @@ adder_var_seq #(
 );
 
 initial begin
-  m_tdata_inner = {C_DATA_WIDTH{1'b0}}
+  m_tdata_inner = {C_DATA_WIDTH{1'b0}};
 end
 
 assign m_tvalid = &s_tvalid;
-//assign m_tdata = {(C_DATA_WIDTH-1){1'b0}};
 assign m_tdata = m_tdata_inner;
 
 // Only assert s_tready when transfer has been accepted.  tready asserted on all channels simultaneously
