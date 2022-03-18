@@ -71,7 +71,7 @@ always @(posedge aclk) begin
   else
     cnt <= cnt;
 end
-
+/*
 always @(*) begin
   if (areset)
     s_tready_inner = {C_NUM_CHANNELS{1'b0}};
@@ -84,6 +84,8 @@ always @(*) begin
   else
     s_tready_inner = {C_NUM_CHANNELS{1'b0}}; 
 end
+*/
+assign s_tready_inner = m_tready & m_tvalid ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
 
 adder_var_seq #(
   .DATA_WIDTH (C_DATA_WIDTH)
