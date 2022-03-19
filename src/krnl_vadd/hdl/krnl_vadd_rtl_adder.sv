@@ -93,7 +93,7 @@ adder_var_seq #(
   .clk      (aclk   ),
   .rst_n    (~areset ),
   .i_data   (s_tdata),
-  .i_valid  (s_tvalid & s_tready_inner),
+  .i_valid  (s_tvalid),
   .o_data   (m_tdata_inner),
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
