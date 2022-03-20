@@ -83,7 +83,7 @@ module tb_axis_master_slave_systolic_array_top_AXI_seq();
         .C_DATA_WIDTH(DATA_WIDTH)
     ) dut (
         .aclk(clk),
-        .areset(rst_n),
+        .areset(~rst_n),
         .s_tvalid(m00_axis_tvalid),
         .s_tdata(m00_axis_tdata),
         .s_tready(m00_axis_tready),

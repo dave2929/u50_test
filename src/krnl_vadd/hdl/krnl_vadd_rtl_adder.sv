@@ -97,7 +97,19 @@ adder_var_seq #(
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
 );
-
+/*
+adder_var_seq #(
+  .DATA_WIDTH (C_DATA_WIDTH)
+) adder (
+  .clk      (aclk   ),
+  .rst_n    (~areset ),
+  .i_data   (s_tdata),
+  .i_valid  (s_tvalid & s_tready),
+  .o_data   (m_tdata_inner),
+  .o_valid  (m_tvalid_inner),
+  .i_en     (1'b1)
+);
+*/
 always @(*) begin
   if (areset) begin
     m_tdata_buffer = {C_DATA_WIDTH{1'b0}};
@@ -120,39 +132,6 @@ end
 assign  m_tdata = m_tdata_buffer;
 assign m_tvalid = m_tvalid_buffer;
 assign s_tready = s_tready_inner;
-
-
-
-/* assign  m_tdata = m_tdata_inner;
-assign m_tvalid = &s_tvalid;
-assign s_tready = s_tready_inner; */
-
-/*
-logic [C_DATA_WIDTH:0] m_tdata_inner;
-logic m_tvalid_inner;
-
-adder_var_seq #(
-  .DATA_WIDTH (C_DATA_WIDTH)
-) adder (
-  .clk      (aclk   ),
-  .rst_n    (!areset ),
-  .i_data   (s_tdata),
-  .i_valid  (s_tvalid),
-  .o_data   (m_tdata_inner),
-  .o_valid  (m_tvalid_inner),
-  .i_en     (1'b1)
-);
-
-initial begin
-  m_tdata_inner = {{(C_DATA_WIDTH-1){1'b0}},{1'b1}};
-end
-
-assign m_tvalid = &s_tvalid;
-assign m_tdata = m_tdata_inner[C_DATA_WIDTH-1:0];
-
-// Only assert s_tready when transfer has been accepted.  tready asserted on all channels simultaneously
-assign s_tready = m_tready & m_tvalid ? {C_NUM_CHANNELS{1'b1}} : {C_NUM_CHANNELS{1'b0}};
-*/
 
 endmodule : krnl_vadd_rtl_adder
 
