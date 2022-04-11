@@ -92,24 +92,12 @@ adder_var_seq #(
   .clk      (aclk   ),
   .rst_n    (~areset ),
   .i_data   (s_tdata),
-  .i_valid  (s_tvalid),
+  .i_valid  (s_tvalid & s_tready_inner),
   .o_data   (m_tdata_inner),
   .o_valid  (m_tvalid_inner),
   .i_en     (1'b1)
 );
-/*
-adder_var_seq #(
-  .DATA_WIDTH (C_DATA_WIDTH)
-) adder (
-  .clk      (aclk   ),
-  .rst_n    (~areset ),
-  .i_data   (s_tdata),
-  .i_valid  (s_tvalid & s_tready),
-  .o_data   (m_tdata_inner),
-  .o_valid  (m_tvalid_inner),
-  .i_en     (1'b1)
-);
-*/
+
 always @(*) begin
   if (areset) begin
     m_tdata_buffer = {C_DATA_WIDTH{1'b0}};
