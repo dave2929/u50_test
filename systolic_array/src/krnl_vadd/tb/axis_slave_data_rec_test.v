@@ -198,7 +198,7 @@ module axis_slave_data_rec_test #
     end
     
     initial begin
-        $monitor("@[%d] stream_data_fifo receive %d-th data\n", $time, write_pointer);
+        $monitor("@[%d] stream_data_fifo receive %d-th data with value %h \n", $time, write_pointer, S_AXIS_TDATA);
     end
 
 endmodule

@@ -60,7 +60,8 @@ module krnl_vadd_rtl_axi_read_master #(
   // AXI4-Stream master interface, 1 interface per channel.
   output wire [C_NUM_CHANNELS-1:0]                     m_tvalid,
   input  wire [C_NUM_CHANNELS-1:0]                     m_tready,
-  output wire [C_NUM_CHANNELS-1:0][C_DATA_WIDTH-1:0]   m_tdata
+  output wire [C_NUM_CHANNELS-1:0][C_DATA_WIDTH-1:0]   m_tdata,
+  output wire [C_NUM_CHANNELS-1:0]                     m_tlast
 );
 
 timeunit 1ps; 
@@ -100,6 +101,7 @@ logic [C_NUM_CHANNELS-1:0]                                    stall_ar;
 logic [C_NUM_CHANNELS-1:0][LP_MAX_OUTSTANDING_CNTR_WIDTH-1:0] outstanding_vacancy_count;
 // AXI Data Channel
 logic [C_NUM_CHANNELS-1:0]                                tvalid;
+logic [C_NUM_CHANNELS-1:0]                                tlast;
 logic [C_NUM_CHANNELS-1:0][C_DATA_WIDTH-1:0]              tdata;
 logic                                                     rxfer;
 logic [C_NUM_CHANNELS-1:0]                                decr_r_transaction_cntr;
@@ -234,11 +236,13 @@ inst_ar_to_r_transaction_cntr[C_NUM_CHANNELS-1:0] (
 ///////////////////////////////////////////////////////////////////////////////
 assign m_tvalid = tvalid;
 assign m_tdata = tdata;
+assign m_tlast = tlast;
 
 always_comb begin 
   for (int i = 0; i < C_NUM_CHANNELS; i++) begin
     tvalid[i] = rvalid && (rid == i); 
     tdata[i] = rdata;
+    tlast[i] = rlast;
   end
 end
 

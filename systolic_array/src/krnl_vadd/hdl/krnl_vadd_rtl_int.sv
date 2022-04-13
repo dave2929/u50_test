@@ -31,7 +31,8 @@ module krnl_vadd_rtl_int #(
   parameter integer  C_S_AXI_CONTROL_ADDR_WIDTH = 6,
   parameter integer  C_M_AXI_GMEM_ID_WIDTH = 1,
   parameter integer  C_M_AXI_GMEM_ADDR_WIDTH = 64,
-  parameter integer  C_M_AXI_GMEM_DATA_WIDTH = 32
+  parameter integer  C_M_AXI_GMEM_DATA_WIDTH = 128,
+  parameter integer  C_S_AXI_GMEM_DATA_WIDTH = 256
 )
 (
   // System signals
@@ -70,7 +71,7 @@ module krnl_vadd_rtl_int #(
   output wire [3:0]                           m_axi_gmem_ARREGION,
   input  wire                                 m_axi_gmem_RVALID,
   output wire                                 m_axi_gmem_RREADY,
-  input  wire [C_M_AXI_GMEM_DATA_WIDTH - 1:0] m_axi_gmem_RDATA,
+  input  wire [C_S_AXI_GMEM_DATA_WIDTH - 1:0] m_axi_gmem_RDATA,
   input  wire                                 m_axi_gmem_RLAST,
   input  wire [C_M_AXI_GMEM_ID_WIDTH - 1:0]   m_axi_gmem_RID,
   input  wire [1:0]                           m_axi_gmem_RRESP,
@@ -111,6 +112,16 @@ localparam integer LP_RD_MAX_OUTSTANDING = 3;
 localparam integer LP_RD_FIFO_DEPTH      = LP_AXI_BURST_LEN*(LP_RD_MAX_OUTSTANDING + 1);
 localparam integer LP_WR_FIFO_DEPTH      = LP_AXI_BURST_LEN;
 
+// Parameters of Axi Slave Bus Interface S00_AXIS
+localparam integer C_S00_AXIS_TDATA_WIDTH	= 128;
+
+// Parameters of Axi Master Bus Interface M00_AXIS
+localparam integer C_M00_AXIS_TDATA_WIDTH	= 256;
+localparam integer C_M00_AXIS_START_COUNT	= 32;
+localparam integer DATA_WIDTH	= 9;
+localparam integer C_S00_AXIS_STRB_WIDTH	= C_S00_AXIS_TDATA_WIDTH/DATA_WIDTH;
+localparam integer C_M00_AXIS_STRB_WIDTH	= C_M00_AXIS_TDATA_WIDTH/DATA_WIDTH;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Variables
@@ -129,19 +140,22 @@ logic [LP_LENGTH_WIDTH-1:0]         length_r;
 
 logic read_done;
 logic [LP_NUM_READ_CHANNELS-1:0] rd_tvalid;
+logic [LP_NUM_READ_CHANNELS-1:0] rd_tlast;
 logic [LP_NUM_READ_CHANNELS-1:0] rd_tready_n; 
 logic [LP_NUM_READ_CHANNELS-1:0] [C_M_AXI_GMEM_DATA_WIDTH-1:0] rd_tdata;
 logic [LP_NUM_READ_CHANNELS-1:0] ctrl_rd_fifo_prog_full;
 logic [LP_NUM_READ_CHANNELS-1:0] rd_fifo_tvalid_n;
 logic [LP_NUM_READ_CHANNELS-1:0] rd_fifo_tready; 
+logic [LP_NUM_READ_CHANNELS-1:0] rd_fifo_tlast; 
 logic [LP_NUM_READ_CHANNELS-1:0] [C_M_AXI_GMEM_DATA_WIDTH-1:0] rd_fifo_tdata;
+logic [LP_NUM_READ_CHANNELS-1:0] [(C_M_AXI_GMEM_DATA_WIDTH/8)-1:0] rd_fifo_tstrb;
 
-logic                               adder_tvalid;
-logic                               adder_tready_n; 
-logic [C_M_AXI_GMEM_DATA_WIDTH-1:0] adder_tdata;
+logic                               systolic_tvalid;
+logic                               systolic_tready_n; 
+logic [C_M00_AXIS_TDATA_WIDTH-1:0]  systolic_tdata;
 logic                               wr_fifo_tvalid_n;
 logic                               wr_fifo_tready; 
-logic [C_M_AXI_GMEM_DATA_WIDTH-1:0] wr_fifo_tdata;
+logic [C_M00_AXIS_TDATA_WIDTH-1:0]  wr_fifo_tdata;
 
 ///////////////////////////////////////////////////////////////////////////////
 // RTL Logic 
@@ -263,11 +277,13 @@ inst_axi_read_master (
 
   .m_tvalid       ( rd_tvalid              ) ,
   .m_tready       ( ~rd_tready_n           ) ,
-  .m_tdata        ( rd_tdata               ) 
+  .m_tdata        ( rd_tdata               ) ,
+  .m_tlast        ( rd_tlast               )
 );
 
 // xpm_fifo_sync: Synchronous FIFO
 // Xilinx Parameterized Macro, Version 2016.4
+
 xpm_fifo_sync # (
   .FIFO_MEMORY_TYPE          ("auto"),           //string; "auto", "block", "distributed", or "ultra";
   .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
@@ -309,8 +325,23 @@ xpm_fifo_sync # (
 
 );
 
+always @(posedge ap_clk) begin
+  for (int i = 0; i < LP_NUM_READ_CHANNELS; i++) begin
+    // rd_fifo_tlast[i] <= rd_tlast[i];
+    rd_fifo_tlast[i] <= 1'b0;
+  end
+end
+
+always_comb begin
+  for (int i = 0; i < LP_NUM_READ_CHANNELS; i++) begin
+    rd_fifo_tstrb[i] = {(C_M_AXI_GMEM_DATA_WIDTH/8){1'b1}};
+  end
+end
+
+
+
 // Combinatorial Adder
-krnl_vadd_rtl_adder #( 
+/* krnl_vadd_rtl_adder #( 
   .C_DATA_WIDTH   ( C_M_AXI_GMEM_DATA_WIDTH ) ,
   .C_NUM_CHANNELS ( LP_NUM_READ_CHANNELS    ) 
 )
@@ -325,6 +356,32 @@ inst_adder (
   .m_tvalid ( adder_tvalid      ) ,
   .m_tready ( ~adder_tready_n   ) ,
   .m_tdata  ( adder_tdata       ) 
+); */
+
+systolic_array_top_AXI_seq #(
+    .C_S00_AXIS_TDATA_WIDTH(C_S00_AXIS_TDATA_WIDTH),
+    .C_M00_AXIS_TDATA_WIDTH(C_M00_AXIS_TDATA_WIDTH),
+    .C_M00_AXIS_START_COUNT(C_M00_AXIS_START_COUNT),
+    .DATA_WIDTH(DATA_WIDTH),
+    .C_S00_STRB_WIDTH(C_S00_AXIS_TDATA_WIDTH/8),
+    .C_M00_STRB_WIDTH(C_M00_AXIS_TDATA_WIDTH/8)
+) dut (
+    .s00_axis_aclk(ap_clk),
+    .s00_axis_aresetn(~areset), // active-low areset
+    .s00_axis_tready(rd_fifo_tready[0]),
+    .s00_axis_tdata(rd_fifo_tdata[0]),
+    .s00_axis_tstrb(rd_fifo_tstrb[0]),
+    .s00_axis_tlast(rd_fifo_tlast[0]),
+    .s00_axis_tvalid(~rd_fifo_tvalid_n[0]),
+
+    // Ports of Axi Master Bus Interface M00_AXIS
+    .m00_axis_aclk(ap_clk),
+    .m00_axis_aresetn(~areset),
+    .m00_axis_tvalid(systolic_tvalid),
+    .m00_axis_tdata(systolic_tdata),
+    .m00_axis_tstrb(),
+    .m00_axis_tlast(),
+    .m00_axis_tready(~systolic_tready_n)
 );
 
 // xpm_fifo_sync: Synchronous FIFO
@@ -333,13 +390,13 @@ xpm_fifo_sync # (
   .FIFO_MEMORY_TYPE          ("auto"),           //string; "auto", "block", "distributed", or "ultra";
   .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
   .FIFO_WRITE_DEPTH          (LP_WR_FIFO_DEPTH),   //positive integer
-  .WRITE_DATA_WIDTH          (C_M_AXI_GMEM_DATA_WIDTH),               //positive integer
+  .WRITE_DATA_WIDTH          (C_S_AXI_GMEM_DATA_WIDTH),               //positive integer
   .WR_DATA_COUNT_WIDTH       ($clog2(LP_WR_FIFO_DEPTH)),               //positive integer, Not used
   .PROG_FULL_THRESH          (10),               //positive integer, Not used 
   .FULL_RESET_VALUE          (1),                //positive integer; 0 or 1
   .READ_MODE                 ("fwft"),            //string; "std" or "fwft";
   .FIFO_READ_LATENCY         (1),                //positive integer;
-  .READ_DATA_WIDTH           (C_M_AXI_GMEM_DATA_WIDTH),               //positive integer
+  .READ_DATA_WIDTH           (C_S_AXI_GMEM_DATA_WIDTH),               //positive integer
   .RD_DATA_COUNT_WIDTH       ($clog2(LP_WR_FIFO_DEPTH)),               //positive integer, not used
   .PROG_EMPTY_THRESH         (10),               //positive integer, not used 
   .DOUT_RESET_VALUE          ("0"),              //string, don't care
@@ -349,9 +406,9 @@ xpm_fifo_sync # (
   .sleep         ( 1'b0             ) ,
   .rst           ( areset           ) ,
   .wr_clk        ( ap_clk           ) ,
-  .wr_en         ( adder_tvalid     ) ,
-  .din           ( adder_tdata      ) ,
-  .full          ( adder_tready_n   ) ,
+  .wr_en         ( systolic_tvalid     ) ,
+  .din           ( systolic_tdata      ) ,
+  .full          ( systolic_tready_n   ) ,
   .prog_full     (                  ) ,
   .wr_data_count (                  ) ,
   .overflow      (                  ) ,
@@ -374,7 +431,7 @@ xpm_fifo_sync # (
 // AXI4 Write Master
 krnl_vadd_rtl_axi_write_master #( 
   .C_ADDR_WIDTH       ( C_M_AXI_GMEM_ADDR_WIDTH ) ,
-  .C_DATA_WIDTH       ( C_M_AXI_GMEM_DATA_WIDTH ) ,
+  .C_DATA_WIDTH       ( C_S_AXI_GMEM_DATA_WIDTH ) ,
   .C_MAX_LENGTH_WIDTH ( LP_LENGTH_WIDTH     ) ,
   .C_BURST_LEN        ( LP_AXI_BURST_LEN        ) ,
   .C_LOG_BURST_LEN    ( LP_LOG_BURST_LEN        ) 

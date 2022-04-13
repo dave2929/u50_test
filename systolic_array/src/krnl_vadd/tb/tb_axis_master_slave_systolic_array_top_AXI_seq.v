@@ -20,12 +20,12 @@
 
 module tb_axis_master_slave_systolic_array_top_AXI_seq();
     // Parameters of Axi Slave Bus Interface S00_AXIS
-    localparam integer C_S00_AXIS_TDATA_WIDTH	= 64;
+    localparam integer C_S00_AXIS_TDATA_WIDTH	= 128;
 
     // Parameters of Axi Master Bus Interface M00_AXIS
-    localparam integer C_M00_AXIS_TDATA_WIDTH	= 33;
+    localparam integer C_M00_AXIS_TDATA_WIDTH	= 256;
     localparam integer C_M00_AXIS_START_COUNT	= 32;
-    localparam integer DATA_WIDTH	= 32;
+    localparam integer DATA_WIDTH	= 9;
     localparam integer C_S00_AXIS_STRB_WIDTH	= C_S00_AXIS_TDATA_WIDTH/DATA_WIDTH;
     localparam integer C_M00_AXIS_STRB_WIDTH	= C_M00_AXIS_TDATA_WIDTH/DATA_WIDTH;
 
@@ -39,7 +39,7 @@ module tb_axis_master_slave_systolic_array_top_AXI_seq();
     wire s00_axis_tvalid;
 
     // Ports of Axi Master Bus Interface M00_AXIS
-    wire [1:0]  m00_axis_tvalid;
+    wire  m00_axis_tvalid;
     wire [C_S00_AXIS_TDATA_WIDTH-1 : 0] m00_axis_tdata;
     wire [(C_S00_AXIS_TDATA_WIDTH/8)-1 : 0] m00_axis_tstrb;
     wire  m00_axis_tlast;
@@ -79,17 +79,30 @@ module tb_axis_master_slave_systolic_array_top_AXI_seq();
         .m00_axis_tready(m00_axis_tready)
     );
 
-    krnl_vadd_rtl_adder #(
-        .C_DATA_WIDTH(DATA_WIDTH)
+    systolic_array_top_AXI_seq #(
+        .C_S00_AXIS_TDATA_WIDTH(C_S00_AXIS_TDATA_WIDTH),
+        .C_M00_AXIS_TDATA_WIDTH(C_M00_AXIS_TDATA_WIDTH),
+        .C_M00_AXIS_START_COUNT(C_M00_AXIS_START_COUNT),
+        .DATA_WIDTH(DATA_WIDTH),
+        .C_S00_STRB_WIDTH(C_S00_AXIS_TDATA_WIDTH/8),
+        .C_M00_STRB_WIDTH(C_M00_AXIS_TDATA_WIDTH/8)
     ) dut (
-        .aclk(clk),
-        .areset(~rst_n),
-        .s_tvalid(m00_axis_tvalid),
-        .s_tdata(m00_axis_tdata),
-        .s_tready(m00_axis_tready),
-        .m_tvalid(s00_axis_tvalid),
-        .m_tdata(s00_axis_tdata),
-        .m_tready(s00_axis_tready)
+        .s00_axis_aclk(clk),
+        .s00_axis_aresetn(rst_n), //change this to ~rstn
+        .s00_axis_tready(m00_axis_tready),
+        .s00_axis_tdata(m00_axis_tdata),
+        .s00_axis_tstrb(m00_axis_tstrb),
+        .s00_axis_tlast(m00_axis_tlast),
+        .s00_axis_tvalid(m00_axis_tvalid),
+
+        // Ports of Axi Master Bus Interface M00_AXIS
+        .m00_axis_aclk(clk),
+        .m00_axis_aresetn(rst_n),
+        .m00_axis_tvalid(s00_axis_tvalid),
+        .m00_axis_tdata(s00_axis_tdata),
+        .m00_axis_tstrb(s00_axis_tstrb),
+        .m00_axis_tlast(s00_axis_tlast),
+        .m00_axis_tready(s00_axis_tready)
     );
 
     always@(posedge clk)
@@ -112,7 +125,6 @@ module tb_axis_master_slave_systolic_array_top_AXI_seq();
         .S_AXIS_TLAST(s00_axis_tlast),
         .S_AXIS_TVALID(s00_axis_tvalid)
     );
-    assign s00_axis_tstrb = {(C_M00_AXIS_TDATA_WIDTH/8){1'b1}};
 
     // Add user logic here
     // User logic ends
@@ -142,7 +154,8 @@ module tb_axis_master_slave_systolic_array_top_AXI_seq();
     always#(`PERIOD/2) clk = ~clk;
 
     always@(posedge clk) begin
-        $display("data gen sends %d-th data\n", read_pointer);
+        // $display("data gen sends %d-th data\n", read_pointer);
+        // $display("data gen sends %d-th data\n", read_pointer);
     end
 
 endmodule
